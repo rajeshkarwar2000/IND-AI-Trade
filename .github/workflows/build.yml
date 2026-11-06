@@ -1,0 +1,43 @@
+name: Build IND AI Trade (from zip)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: |
+          unzip -q IND_AI_Trade.zip -d tmp
+          cp -a tmp/*/. .
+          rm -rf tmp
+          ls -la
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Generate Android project
+        run: flutter create --org com.indai --project-name ind_ai_trade --platforms=android .
+
+      - name: Permissions and Gemini package visibility
+        run: |
+          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/><queries><package android:name="com.google.android.apps.bard"/></queries><application#' android/app/src/main/AndroidManifest.xml
+
+      - run: flutter pub get
+      - run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IND-AI-Trade-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
